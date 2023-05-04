@@ -1,7 +1,9 @@
 import os
+import math
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.cluster.vq import *
 
 class Utility:
   def clear():
@@ -34,8 +36,47 @@ class EdgeDetection:
     EdgeDetection.showResult(2, 2, zip(laplace_labels, laplace_images))
 
 class ShapeDetection:
+  sides_to_shape = {
+    '3': 'Triangle',
+    '4': 'Rectangle',
+    '5': 'Pentagon',
+    '6': 'Hexagon',
+    '7': 'Heptagon',
+    '8': 'Octagon',
+    '9': 'Nonagon',
+    '10': 'Decagon'
+  }
+
   def start():
-    print('Shape Detection')
+    image = cv2.imread('./Shape Detection/shapes.png')
+    new_image = cv2.resize(image, (800, 400))
+    new_image = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
+
+    _, threshold = cv2.threshold(new_image, 127, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    first = False
+    for contour in contours:
+      if first == False:
+        first = True
+        continue
+
+      approx = cv2.approxPolyDP(contour, 0.01 * cv2.arcLength(contour, True), True)
+      M = cv2.moments(contour)
+      x = int(M['m10'] / M['m00'])
+      y = int(M['m01'] / M['m00'])
+      
+      if (len(approx) >= 3 and len(approx) <= 10):
+        cv2.putText(new_image, ShapeDetection.sides_to_shape[str(len(approx))], (x, y), cv2.FONT_HERSHEY_PLAIN, 0.6, (0, 0, 0))
+      else:
+        area = cv2.contourArea(contour)
+        perimeter = cv2.arcLength(contour, True)
+        circularity = 4 * math.pi * area / (perimeter * perimeter)
+        if circularity > 0.8:
+          cv2.putText(new_image, 'Circle', (x, y), cv2.FONT_HERSHEY_PLAIN, 0.6, (0, 0, 0))
+
+    cv2.imshow('Shape Detection', new_image)
+    cv2.waitKey()
 
 class PatternDetection:
   def start():
